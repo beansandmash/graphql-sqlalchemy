@@ -1,5 +1,5 @@
 from sqlalchemy import Column
-from sqlalchemy.orm import interfaces
+from sqlalchemy.orm import interfaces, RelationshipProperty
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from graphql import (
     GraphQLField,
@@ -11,7 +11,6 @@ from graphql import (
     GraphQLOutputType,
 )
 
-from typing import Any
 from .graphql_types import get_graphql_type_from_column
 from .helpers import get_relationships, get_table
 from .names import get_table_name, get_field_name
@@ -26,7 +25,7 @@ def build_object_type(model: DeclarativeMeta, objects: Objects) -> GraphQLObject
         else:
             return GraphQLNonNull(get_graphql_type_from_column(column.type))
 
-    def get_relationship_field(relationship: Any) -> GraphQLOutputType:
+    def get_relationship_field(relationship: RelationshipProperty) -> GraphQLOutputType:
         if relationship.direction in (interfaces.ONETOMANY, interfaces.MANYTOMANY):
             return GraphQLList(objects[get_table_name(relationship.mapper.entity)])
         else:

@@ -1,6 +1,6 @@
-from typing import Any, Union
+from typing import Union
 
-from graphql import GraphQLList  # , GraphQLScalarType
+from graphql import GraphQLList, GraphQLScalarType
 from sqlalchemy import Column
 from sqlalchemy.ext.declarative import DeclarativeMeta
 
@@ -31,16 +31,16 @@ FIELD_NAMES = {
 }
 
 
-def get_table_name(model: DeclarativeMeta) -> str:
+def get_table_name(model: Union[DeclarativeMeta, GraphQLScalarType, GraphQLList]) -> str:
     return get_table(model).name
 
 
-def get_field_name(model: Any, field_name: Any, column: Union[Column, Any] = None) -> str:
+def get_field_name(model: Union[DeclarativeMeta, GraphQLScalarType, GraphQLList], field_name: str, column: Union[Column, GraphQLScalarType, GraphQLList, None] = None) -> str:
     if field_name == "comparison":
         if isinstance(model, GraphQLList):
             return FIELD_NAMES["arr_comparison"] % model.of_type.name.lower()
         else:
-            return FIELD_NAMES[field_name] % model.name.lower()
+            return FIELD_NAMES[field_name] % getattr(model, "name").lower()
 
     else:
         name = get_table_name(model)

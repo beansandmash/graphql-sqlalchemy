@@ -1,5 +1,6 @@
 from graphql import GraphQLField, GraphQLFieldMap, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLSchema
 from sqlalchemy.ext.declarative import DeclarativeMeta
+from typing import cast, Callable
 
 from .args import (
     make_query_args,
@@ -81,4 +82,6 @@ def build_mutations(model: DeclarativeMeta, objects: Objects, mutations: GraphQL
     }
 
     for mutation_name in resolvers.keys():
-        mutations[get_field_name(model, mutation_name)] = GraphQLField(resolvers[mutation_name][1], args=make_mutation_args(model, inputs, mutation_name), resolve=resolvers[mutation_name][0])  # type: ignore
+        mutations[get_field_name(model, mutation_name)] = GraphQLField(
+            cast(GraphQLObjectType, resolvers[mutation_name][1]), args=make_mutation_args(model, inputs, mutation_name), resolve=cast(Callable, resolvers[mutation_name][0])
+        )

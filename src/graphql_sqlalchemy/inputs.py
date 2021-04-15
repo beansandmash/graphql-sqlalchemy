@@ -11,14 +11,19 @@ from graphql import (
 )
 from sqlalchemy import Float, Integer
 
-from typing import Any, Union
+from typing import Union, Dict, cast
 from .graphql_types import get_graphql_type_from_column
 from .helpers import get_relationships, get_table
 from .names import get_field_name
 from .types import Inputs
+from sqlalchemy.ext.declarative import DeclarativeMeta
 
 
 ORDER_BY_ENUM = GraphQLEnumType("order_by", {"desc": "desc", "asc": "asc"})
+
+
+def get_empty_dict() -> Dict[str, GraphQLInputField]:
+    return {}
 
 
 def get_type_comparison_fields(graphql_type: Union[GraphQLScalarType, GraphQLList], inputs: Inputs, type_name: str) -> GraphQLInputObjectType:
@@ -49,7 +54,7 @@ def get_type_comparison_fields(graphql_type: Union[GraphQLScalarType, GraphQLLis
     return inputs[type_name]
 
 
-def get_input_type(model: Any, inputs: Inputs, input_type: Any) -> GraphQLInputObjectType:
+def get_input_type(model: DeclarativeMeta, inputs: Inputs, input_type: str) -> GraphQLInputObjectType:
     type_name = get_field_name(model, input_type)
 
     """ skip if field already exists """
@@ -58,7 +63,7 @@ def get_input_type(model: Any, inputs: Inputs, input_type: Any) -> GraphQLInputO
 
     def get_fields() -> GraphQLInputFieldMap:
         """ initial field population """
-        input_field = {
+        input_field1 = {
             "where": {
                 "_and": GraphQLInputField(GraphQLList(inputs[type_name])),
                 "_or": GraphQLInputField(GraphQLList(inputs[type_name])),
@@ -69,36 +74,36 @@ def get_input_type(model: Any, inputs: Inputs, input_type: Any) -> GraphQLInputO
             },
         }
 
-        if input_type in input_field.keys():
-            fields = input_field[input_type]
+        if input_type in input_field1.keys():
+            fields = input_field1[input_type]
         else:
-            fields = {}
+            fields = get_empty_dict()
 
         """ per column population """
         for column in get_table(model).columns:
             graphql_type = get_graphql_type_from_column(column.type)
             column_type = GraphQLInputField(graphql_type)
 
-            input_field = {
-                "where": GraphQLInputField(get_type_comparison_fields(graphql_type, inputs, get_field_name(graphql_type, "comparison"))),  # type: ignore
-                "order_by": GraphQLInputField(ORDER_BY_ENUM),  # type: ignore
-                "insert_input": column_type,  # type: ignore
-                "inc_input": column_type if isinstance(column.type, (Integer, Float)) else None,  # type: ignore
-                "set_input": column_type,  # type: ignore
+            input_field2 = {
+                "where": GraphQLInputField(get_type_comparison_fields(graphql_type, inputs, get_field_name(graphql_type, "comparison"))),
+                "order_by": GraphQLInputField(ORDER_BY_ENUM),
+                "insert_input": column_type,
+                "inc_input": column_type if isinstance(column.type, (Integer, Float)) else None,
+                "set_input": column_type,
             }
 
-            if input_type in input_field.keys() and input_field[input_type]:
-                fields[column.name] = input_field[input_type]  # type: ignore
+            if input_type in input_field2.keys() and input_field2[input_type]:
+                fields[column.name] = cast(GraphQLInputField, input_field2[input_type])
 
         """ relationship population """
         for name, relationship in get_relationships(model):
-            input_field = {
-                "where": GraphQLInputField(inputs[get_field_name(relationship.mapper.entity, "where")]),  # type: ignore
-                "order_by": GraphQLInputField(inputs[get_field_name(relationship.mapper.entity, "order_by")]),  # type: ignore
+            input_field3 = {
+                "where": GraphQLInputField(inputs[get_field_name(relationship.mapper.entity, "where")]),
+                "order_by": GraphQLInputField(inputs[get_field_name(relationship.mapper.entity, "order_by")]),
             }
 
-            if input_type in input_field.keys():
-                fields[name] = input_field[input_type]  # type: ignore
+            if input_type in input_field3.keys():
+                fields[name] = input_field3[input_type]
 
         return fields
 

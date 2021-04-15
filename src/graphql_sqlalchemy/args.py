@@ -7,14 +7,14 @@ from .inputs import get_input_type
 from .types import Inputs
 
 
-PAGINATION_ARGS = {"limit": GraphQLInt, "offset": GraphQLInt}
+PAGINATION_ARGS = {"limit": GraphQLArgument(GraphQLInt), "offset": GraphQLArgument(GraphQLInt)}
 
 
 def make_query_args(model: DeclarativeMeta, inputs: Inputs) -> GraphQLArgumentMap:
     args = {
         "order": GraphQLArgument(GraphQLList(GraphQLNonNull(get_input_type(model, inputs, "order_by")))),
         "where": GraphQLArgument(get_input_type(model, inputs, "where")),
-        **PAGINATION_ARGS,  # type: ignore
+        **PAGINATION_ARGS,
     }
 
     return args
